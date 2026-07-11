@@ -5,32 +5,4 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:background="@color/kb_bg_light">
-
-    <!-- Font Bar (Horizontal Scrollable) -->
-    <com.modernkey.keyboard.ui.keyboard.FontBarView
-        android:id="@+id/font_bar"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/font_bar_height"
-        android:background="@color/font_bar_bg" />
-
-    <!-- Main QWERTY Keys -->
-    <com.modernkey.keyboard.ui.keyboard.KeyboardView
-        android:id="@+id/keyboard_view"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <!-- Emoji Panel (hidden by default) -->
-    <com.modernkey.keyboard.ui.emoji.EmojiPanelView
-        android:id="@+id/emoji_panel"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/emoji_panel_height"
-        android:visibility="gone" />
-
-    <!-- Clipboard Panel (hidden by default) -->
-    <com.modernkey.keyboard.ui.keyboard.ClipboardPanelView
-        android:id="@+id/clipboard_panel"
-        android:layout_width="match_parent"
-        android:layout_height="@dimen/emoji_panel_height"
-        android:visibility="gone" />
-
 </LinearLayout>

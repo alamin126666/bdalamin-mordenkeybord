@@ -42,7 +42,7 @@ class EmojiPanelView @JvmOverloads constructor(
 
     init {
         orientation = VERTICAL
-        inflate(context, R.layout.view_emoji_panel, this)
+        LayoutInflater.from(context).inflate(R.layout.view_emoji_panel, this, true)
         setupViews()
     }
 
@@ -118,7 +118,7 @@ class EmojiGridAdapter : RecyclerView.Adapter<EmojiGridAdapter.VH>() {
 
 class CategoryTabAdapter : RecyclerView.Adapter<CategoryTabAdapter.VH>() {
     private val categories = EmojiCategory.entries
-    private var selectedIdx = 1 // SMILEYS by default
+    private var selectedIdx = 1
     private var onTabClick: ((EmojiCategory) -> Unit)? = null
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
