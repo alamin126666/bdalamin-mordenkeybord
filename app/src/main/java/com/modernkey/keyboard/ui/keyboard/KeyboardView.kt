@@ -2,21 +2,16 @@ package com.modernkey.keyboard.ui.keyboard
 
 import android.content.Context
 import android.graphics.*
-import android.os.Build
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
 import android.util.AttributeSet
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import com.modernkey.keyboard.ModernKeyApp
-import com.modernkey.keyboard.font.FontConverter
 import com.modernkey.keyboard.font.FontStyle
+import kotlin.math.roundToInt
 
 class KeyboardView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null
+    context: Context, attrs: AttributeSet? = null
 ) : View(context, attrs) {
 
     // ── Callbacks ──────────────────────────────────────────────────────────────
@@ -28,137 +23,168 @@ class KeyboardView @JvmOverloads constructor(
         fun onEmojiToggle()
         fun onVoiceToggle()
         fun onShiftToggle()
+        fun onSymbolToggle()
     }
-
     var keyListener: KeyListener? = null
 
-    // ── State ──────────────────────────────────────────────────────────────────
-    private var isShifted = false
+    // ── State ─────────────────────────────────────────────────────────────────
+    private var isShifted  = false
     private var isCapsLock = false
-    private var pressedKey: Key? = null
-    private var currentFontStyle: FontStyle = FontStyle.NORMAL
-
-    // ── Theming ────────────────────────────────────────────────────────────────
+    private var pressedKey : Key? = null
+    private var pressAnim  = 0f
     private val prefs get() = ModernKeyApp.instance.preferences
 
-    // ── Paints ─────────────────────────────────────────────────────────────────
-    private val keyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
-    private val keyBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.STROKE; strokeWidth = 1.2f
-    }
-    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    // ── Material 3 Color Tokens ───────────────────────────────────────────────
+    private var cBg         = Color.parseColor("#1C1B1F")
+    private var cKey        = Color.parseColor("#2B2930")
+    private var cKeyAct     = Color.parseColor("#3B383E")
+    private var cKeyPress   = Color.parseColor("#49454F")
+    private var cEnter      = Color.parseColor("#6750A4")
+    private var cEnterText  = Color.parseColor("#FFFFFF")
+    private var cText       = Color.parseColor("#E6E1E5")
+    private var cHint       = Color.parseColor("#938F99")
+    private var cShadow     = Color.parseColor("#000000")
+
+    // Light theme tokens
+    private val cBgL        = Color.parseColor("#F3EFF4")
+    private val cKeyL       = Color.parseColor("#FFFFFF")
+    private val cKeyActL    = Color.parseColor("#CAC4D0")
+    private val cKeyPressL  = Color.parseColor("#E8DEF8")
+    private val cEnterL     = Color.parseColor("#6750A4")
+    private val cTextL      = Color.parseColor("#1C1B1F")
+    private val cHintL      = Color.parseColor("#79747E")
+
+    // ── Paints ────────────────────────────────────────────────────────────────
+    private val bgPaint   = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val keyPaint  = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val txtPaint  = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface  = Typeface.create("sans-serif-medium", Typeface.NORMAL)
         textAlign = Paint.Align.CENTER
-        textSize = 42f
     }
-    private val subTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        textAlign = Paint.Align.CENTER
-        textSize = 26f
+    private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface  = Typeface.DEFAULT
+        textAlign = Paint.Align.RIGHT
+    }
+    private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style     = Paint.Style.FILL
+    }
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
     }
 
-    // ── Colors (Light Theme defaults) ──────────────────────────────────────────
-    private var bgColor     = Color.parseColor("#F5F5F5")
-    private var keyColor    = Color.WHITE
-    private var keyActColor = Color.parseColor("#DEDEDE")
-    private var keyPresColor= Color.parseColor("#E0E0E0")
-    private var keyTxtColor = Color.parseColor("#212121")
-    private var borderColor = Color.parseColor("#BDBDBD")
+    // ── Key Model ─────────────────────────────────────────────────────────────
+    enum class KeyType { CHAR, SPACE, BACKSPACE, ENTER, SHIFT, EMOJI, VOICE, SYMBOL }
 
-    // ── Keys ───────────────────────────────────────────────────────────────────
-    private data class Key(
+    data class Key(
         val label: String,
-        val type: KeyType,
-        var rect: RectF = RectF(),
-        val isAction: Boolean = false,
-        val subLabel: String = ""
+        val type : KeyType,
+        var rect : RectF = RectF(),
+        val hint : String = "",
+        val isAction: Boolean = false
     )
 
-    private enum class KeyType {
-        CHAR, SPACE, BACKSPACE, ENTER, SHIFT, EMOJI, VOICE, SYMBOL
-    }
+    // Number hints for top row
+    private val numberHints = listOf("1","2","3","4","5","6","7","8","9","0")
 
     private val rows: List<List<Key>> = listOf(
-        listOf("Q","W","E","R","T","Y","U","I","O","P").map { Key(it, KeyType.CHAR) },
-        listOf("A","S","D","F","G","H","J","K","L").map   { Key(it, KeyType.CHAR) } +
+        // Row 1 — Q…P with number hints
+        listOf("Q","W","E","R","T","Y","U","I","O","P")
+            .mapIndexed { i, c -> Key(c, KeyType.CHAR, hint = numberHints[i]) },
+        // Row 2 — A…L + Backspace
+        listOf("A","S","D","F","G","H","J","K","L")
+            .map { Key(it, KeyType.CHAR) } +
         listOf(Key("⌫", KeyType.BACKSPACE, isAction = true)),
-        listOf(Key("⇧", KeyType.SHIFT, isAction = true)) +
-        listOf("Z","X","C","V","B","N","M").map            { Key(it, KeyType.CHAR) } +
+        // Row 3 — Shift + Z…M + dot
+        listOf(Key("shift", KeyType.SHIFT, isAction = true)) +
+        listOf("Z","X","C","V","B","N","M").map { Key(it, KeyType.CHAR) } +
         listOf(Key(".", KeyType.SYMBOL)),
+        // Row 4 — action row
         listOf(
-            Key("😀", KeyType.EMOJI, isAction = true),
-            Key(",", KeyType.SYMBOL),
-            Key("SPACE", KeyType.SPACE, isAction = true),
-            Key("🎙️", KeyType.VOICE, isAction = true),
-            Key("↵", KeyType.ENTER, isAction = true)
+            Key("?123",  KeyType.SYMBOL,    isAction = true),
+            Key("emoji", KeyType.EMOJI,     isAction = true),
+            Key(" ",     KeyType.SPACE,     isAction = true),
+            Key("mic",   KeyType.VOICE,     isAction = true),
+            Key("enter", KeyType.ENTER,     isAction = true)
         )
     )
 
-    // ── Dimensions ─────────────────────────────────────────────────────────────
-    private val margin  = 5f
-    private val cornerR = 12f
-    private var keyH    = 0f
-    private var totalH  = 0f
+    // ── Dimensions ────────────────────────────────────────────────────────────
+    private val dp  = resources.displayMetrics.density
+    private val mg  = 5f * dp          // key margin
+    private val cr  = 10f * dp         // corner radius
+    private val sh  = 3f * dp          // shadow size
+    private var kH  = 0f               // key height
+    private var totalH = 0f
 
-    // ── Init ───────────────────────────────────────────────────────────────────
-    init { applyTheme() }
+    // ── Init ──────────────────────────────────────────────────────────────────
+    init {
+        setLayerType(LAYER_TYPE_SOFTWARE, null)  // for shadow support
+        applyTheme()
+    }
 
-    private fun applyTheme() {
+    fun applyTheme() {
         if (prefs.isDarkMode) {
-            bgColor     = Color.parseColor("#1A1A1A")
-            keyColor    = Color.parseColor("#2C2C2C")
-            keyActColor = Color.parseColor("#141414")
-            keyPresColor= Color.parseColor("#3C3C3C")
-            keyTxtColor = Color.WHITE
-            borderColor = Color.parseColor("#424242")
+            cBg = Color.parseColor("#1C1B1F"); cKey = Color.parseColor("#2B2930")
+            cKeyAct = Color.parseColor("#3B383E"); cKeyPress = Color.parseColor("#49454F")
+            cEnter = Color.parseColor("#6750A4"); cText = Color.parseColor("#E6E1E5")
+            cHint = Color.parseColor("#938F99")
         } else {
-            bgColor     = Color.parseColor("#F5F5F5")
-            keyColor    = Color.WHITE
-            keyActColor = Color.parseColor("#DEDEDE")
-            keyPresColor= Color.parseColor("#E0E0E0")
-            keyTxtColor = Color.parseColor("#212121")
-            borderColor = Color.parseColor("#BDBDBD")
+            cBg = cBgL; cKey = cKeyL; cKeyAct = cKeyActL; cKeyPress = cKeyPressL
+            cEnter = cEnterL; cText = cTextL; cHint = cHintL
         }
     }
 
     fun refreshTheme() { applyTheme(); invalidate() }
 
-    // ── Layout ─────────────────────────────────────────────────────────────────
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val w = MeasureSpec.getSize(widthMeasureSpec).toFloat()
-        keyH   = when (prefs.keyHeight) { 0 -> 120f; 2 -> 165f; else -> 140f }
-        totalH = keyH * rows.size + margin * (rows.size + 1)
+    // ── Layout ────────────────────────────────────────────────────────────────
+    override fun onMeasure(wSpec: Int, hSpec: Int) {
+        val w = MeasureSpec.getSize(wSpec).toFloat()
+        kH = when (prefs.keyHeight) { 0 -> 44f * dp; 2 -> 58f * dp; else -> 52f * dp }
+        totalH = kH * rows.size + mg * (rows.size + 1) + sh * rows.size
         setMeasuredDimension(w.toInt(), totalH.toInt())
         layoutKeys(w)
     }
 
-    private fun layoutKeys(totalWidth: Float) {
-        var y = margin
-        for ((rowIdx, row) in rows.withIndex()) {
-            val isBottomRow = rowIdx == rows.lastIndex
-            val isRow2 = rowIdx == 1
-            val isRow3 = rowIdx == 2
-            val count = row.size
-            val availW = totalWidth - margin * (count + 1)
-            val baseW  = availW / count
+    private fun layoutKeys(W: Float) {
+        var y = mg
+        for ((ri, row) in rows.withIndex()) {
+            val n = row.size
+            val avail = W - mg * (n + 1)
+            val base  = avail / n
 
-            var x = margin
-            for (key in row) {
-                val kw = when {
-                    key.type == KeyType.SPACE        -> baseW * 3.2f
-                    key.type == KeyType.BACKSPACE && isRow2 -> baseW * 1.4f
-                    key.type == KeyType.SHIFT && isRow3     -> baseW * 1.4f
-                    key.type == KeyType.ENTER        -> baseW * 1.2f
-                    else                             -> baseW
+            // Compute individual widths
+            val widths = row.map { k ->
+                when {
+                    ri == 3 && k.type == KeyType.SPACE     -> base * 3.8f
+                    ri == 3 && k.type == KeyType.SYMBOL    -> base * 1.1f
+                    ri == 3 && k.type == KeyType.EMOJI     -> base * 0.9f
+                    ri == 3 && k.type == KeyType.VOICE     -> base * 0.9f
+                    ri == 3 && k.type == KeyType.ENTER     -> base * 1.4f
+                    ri == 2 && k.type == KeyType.SHIFT     -> base * 1.4f
+                    ri == 1 && k.type == KeyType.BACKSPACE -> base * 1.4f
+                    else -> base
                 }
-                key.rect.set(x, y, x + kw, y + keyH)
-                x += kw + margin
             }
-            y += keyH + margin
+            // Redistribute leftover
+            val used   = widths.sum() + mg * (n - 1)
+            val extra  = (W - mg * 2 - used) / n
+
+            var x = mg
+            for ((ki, key) in row.withIndex()) {
+                val kw = widths[ki] + extra
+                key.rect.set(x, y, x + kw, y + kH)
+                x += kw + mg
+            }
+            y += kH + mg + sh
         }
     }
 
-    // ── Draw ───────────────────────────────────────────────────────────────────
+    // ── Draw ──────────────────────────────────────────────────────────────────
     override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(bgColor)
+        // Background
+        bgPaint.color = cBg
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+
         for (row in rows) {
             for (key in row) {
                 drawKey(canvas, key)
@@ -168,77 +194,235 @@ class KeyboardView @JvmOverloads constructor(
 
     private fun drawKey(canvas: Canvas, key: Key) {
         val pressed = key == pressedKey
-        val fill = when {
-            pressed         -> keyPresColor
-            key.isAction   -> keyActColor
-            else            -> keyColor
+        val r = key.rect
+
+        // Shadow
+        shadowPaint.color = Color.argb(if (prefs.isDarkMode) 80 else 40, 0, 0, 0)
+        val sr = RectF(r.left + 1f, r.top + sh, r.right - 1f, r.bottom + sh)
+        canvas.drawRoundRect(sr, cr, cr, shadowPaint)
+
+        // Key face
+        keyPaint.color = when {
+            pressed             -> cKeyPress
+            key.type == KeyType.ENTER -> cEnter
+            key.isAction        -> cKeyAct
+            else                -> cKey
         }
-        keyPaint.color = fill
-        canvas.drawRoundRect(key.rect, cornerR, cornerR, keyPaint)
+        canvas.drawRoundRect(r, cr, cr, keyPaint)
 
-        keyBorderPaint.color = borderColor
-        canvas.drawRoundRect(key.rect, cornerR, cornerR, keyBorderPaint)
+        val cx = r.centerX()
+        val cy = r.centerY()
 
-        val cx = key.rect.centerX()
-        val cy = key.rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2
+        when (key.type) {
+            KeyType.CHAR -> {
+                // Main letter
+                txtPaint.color    = cText
+                txtPaint.textSize = 17f * dp
+                val label = if (isShifted || isCapsLock) key.label.uppercase() else key.label.lowercase()
+                val tm = txtPaint.fontMetrics
+                canvas.drawText(label, cx, cy - (tm.ascent + tm.descent) / 2f, txtPaint)
 
-        textPaint.color = keyTxtColor
-        val label = when {
-            key.type == KeyType.CHAR && isShifted -> key.label.uppercase()
-            key.type == KeyType.CHAR              -> key.label.lowercase()
-            key.type == KeyType.SHIFT -> if (isCapsLock) "⇪" else if (isShifted) "⇧" else "⇧"
-            else -> key.label
+                // Number hint (top-right)
+                if (key.hint.isNotEmpty()) {
+                    hintPaint.color    = cHint
+                    hintPaint.textSize = 9f * dp
+                    canvas.drawText(key.hint, r.right - 6f * dp, r.top + 13f * dp, hintPaint)
+                }
+            }
+            KeyType.SYMBOL -> {
+                txtPaint.color    = cText
+                txtPaint.textSize = 15f * dp
+                val tm = txtPaint.fontMetrics
+                canvas.drawText(key.label, cx, cy - (tm.ascent + tm.descent) / 2f, txtPaint)
+            }
+            KeyType.BACKSPACE -> drawBackspaceIcon(canvas, r)
+            KeyType.SHIFT     -> drawShiftIcon(canvas, r)
+            KeyType.ENTER     -> drawEnterIcon(canvas, r)
+            KeyType.SPACE     -> {
+                // "English" or language label
+                txtPaint.color    = cHint
+                txtPaint.textSize = 12f * dp
+                val tm = txtPaint.fontMetrics
+                canvas.drawText("EN • BN", cx, cy - (tm.ascent + tm.descent) / 2f, txtPaint)
+            }
+            KeyType.EMOJI -> drawEmojiIcon(canvas, r)
+            KeyType.VOICE -> drawMicIcon(canvas, r)
+            KeyType.SYMBOL -> {
+                txtPaint.color    = cText
+                txtPaint.textSize = 13f * dp
+                val tm = txtPaint.fontMetrics
+                canvas.drawText("?123", cx, cy - (tm.ascent + tm.descent) / 2f, txtPaint)
+            }
         }
-        canvas.drawText(label, cx, cy, textPaint)
+
+        // Special: ?123 label for SYMBOL action key (row 4)
+        if (key.type == KeyType.SYMBOL && key.label == "?123") {
+            txtPaint.color    = cText
+            txtPaint.textSize = 13f * dp
+            val tm = txtPaint.fontMetrics
+            canvas.drawText("?123", cx, cy - (tm.ascent + tm.descent) / 2f, txtPaint)
+        }
     }
 
-    // ── Touch ──────────────────────────────────────────────────────────────────
-    override fun onTouchEvent(event: MotionEvent): Boolean {
-        when (event.action) {
+    private fun drawBackspaceIcon(canvas: Canvas, r: RectF) {
+        val cx = r.centerX(); val cy = r.centerY()
+        val s  = 11f * dp
+        iconPaint.color = cText
+        iconPaint.style = Paint.Style.STROKE
+        iconPaint.strokeWidth = 1.8f * dp
+        iconPaint.strokeJoin  = Paint.Join.ROUND
+        iconPaint.strokeCap   = Paint.Cap.ROUND
+
+        val path = Path().apply {
+            moveTo(cx - s * 1.1f, cy)
+            lineTo(cx - s * 0.3f, cy - s * 0.75f)
+            lineTo(cx + s * 1.1f, cy - s * 0.75f)
+            lineTo(cx + s * 1.1f, cy + s * 0.75f)
+            lineTo(cx - s * 0.3f, cy + s * 0.75f)
+            close()
+        }
+        canvas.drawPath(path, iconPaint)
+
+        // X inside
+        val xo = s * 0.25f
+        canvas.drawLine(cx - xo, cy - xo, cx + xo, cy + xo, iconPaint)
+        canvas.drawLine(cx + xo, cy - xo, cx - xo, cy + xo, iconPaint)
+        iconPaint.style = Paint.Style.FILL
+    }
+
+    private fun drawShiftIcon(canvas: Canvas, r: RectF) {
+        val cx = r.centerX(); val cy = r.centerY()
+        val s  = 10f * dp
+        iconPaint.color       = if (isShifted || isCapsLock) Color.parseColor("#D0BCFF") else cText
+        iconPaint.style       = Paint.Style.STROKE
+        iconPaint.strokeWidth = 1.8f * dp
+        iconPaint.strokeJoin  = Paint.Join.ROUND
+        iconPaint.strokeCap   = Paint.Cap.ROUND
+
+        val path = Path().apply {
+            moveTo(cx, cy - s)
+            lineTo(cx + s * 1.1f, cy)
+            lineTo(cx + s * 0.5f, cy)
+            lineTo(cx + s * 0.5f, cy + s * 0.8f)
+            lineTo(cx - s * 0.5f, cy + s * 0.8f)
+            lineTo(cx - s * 0.5f, cy)
+            lineTo(cx - s * 1.1f, cy)
+            close()
+        }
+        canvas.drawPath(path, iconPaint)
+
+        // Caps lock underline
+        if (isCapsLock) {
+            iconPaint.style = Paint.Style.FILL
+            canvas.drawRoundRect(
+                RectF(cx - s * 0.5f, cy + s * 0.9f, cx + s * 0.5f, cy + s * 0.9f + 3f * dp),
+                2f, 2f, iconPaint)
+        }
+        iconPaint.style = Paint.Style.FILL
+    }
+
+    private fun drawEnterIcon(canvas: Canvas, r: RectF) {
+        val cx = r.centerX(); val cy = r.centerY()
+        val s  = 9f * dp
+        iconPaint.color       = Color.WHITE
+        iconPaint.style       = Paint.Style.STROKE
+        iconPaint.strokeWidth = 1.8f * dp
+        iconPaint.strokeJoin  = Paint.Join.ROUND
+        iconPaint.strokeCap   = Paint.Cap.ROUND
+
+        val path = Path().apply {
+            moveTo(cx + s, cy - s * 0.6f)
+            lineTo(cx + s, cy + s * 0.2f)
+            lineTo(cx - s, cy + s * 0.2f)
+            moveTo(cx - s * 0.4f, cy - s * 0.5f)
+            lineTo(cx - s, cy + s * 0.2f)
+            lineTo(cx - s * 0.4f, cy + s * 0.9f)
+        }
+        canvas.drawPath(path, iconPaint)
+        iconPaint.style = Paint.Style.FILL
+    }
+
+    private fun drawEmojiIcon(canvas: Canvas, r: RectF) {
+        val cx = r.centerX(); val cy = r.centerY()
+        val s  = 10f * dp
+        iconPaint.color       = cHint
+        iconPaint.style       = Paint.Style.STROKE
+        iconPaint.strokeWidth = 1.6f * dp
+
+        // Circle
+        canvas.drawCircle(cx, cy, s, iconPaint)
+
+        // Eyes
+        iconPaint.style = Paint.Style.FILL
+        canvas.drawCircle(cx - s * 0.35f, cy - s * 0.2f, s * 0.12f, iconPaint)
+        canvas.drawCircle(cx + s * 0.35f, cy - s * 0.2f, s * 0.12f, iconPaint)
+
+        // Smile arc
+        iconPaint.style = Paint.Style.STROKE
+        canvas.drawArc(RectF(cx - s * 0.5f, cy, cx + s * 0.5f, cy + s * 0.6f),
+            0f, 180f, false, iconPaint)
+        iconPaint.style = Paint.Style.FILL
+    }
+
+    private fun drawMicIcon(canvas: Canvas, r: RectF) {
+        val cx = r.centerX(); val cy = r.centerY()
+        val s  = 9f * dp
+        iconPaint.color       = cHint
+        iconPaint.style       = Paint.Style.STROKE
+        iconPaint.strokeWidth = 1.6f * dp
+        iconPaint.strokeCap   = Paint.Cap.ROUND
+
+        // Mic body
+        canvas.drawRoundRect(
+            RectF(cx - s * 0.45f, cy - s * 1.1f, cx + s * 0.45f, cy + s * 0.2f),
+            s * 0.45f, s * 0.45f, iconPaint)
+
+        // Arc
+        canvas.drawArc(RectF(cx - s, cy - s * 0.2f, cx + s, cy + s * 0.8f),
+            0f, 180f, false, iconPaint)
+
+        // Stem
+        canvas.drawLine(cx, cy + s * 0.8f, cx, cy + s * 1.1f, iconPaint)
+        canvas.drawLine(cx - s * 0.5f, cy + s * 1.1f, cx + s * 0.5f, cy + s * 1.1f, iconPaint)
+        iconPaint.style = Paint.Style.FILL
+    }
+
+    // ── Touch ─────────────────────────────────────────────────────────────────
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.action) {
             MotionEvent.ACTION_DOWN -> {
-                val key = findKey(event.x, event.y)
-                pressedKey = key
+                pressedKey = findKey(ev.x, ev.y)
                 invalidate()
             }
             MotionEvent.ACTION_UP -> {
-                val key = findKey(event.x, event.y)
-                if (key != null && key == pressedKey) {
-                    onKeyPressed(key)
-                }
+                val key = findKey(ev.x, ev.y)
+                if (key != null && key == pressedKey) fireKey(key)
                 pressedKey = null
                 invalidate()
             }
-            MotionEvent.ACTION_CANCEL -> {
-                pressedKey = null
-                invalidate()
-            }
+            MotionEvent.ACTION_CANCEL -> { pressedKey = null; invalidate() }
         }
         return true
     }
 
     private fun findKey(x: Float, y: Float): Key? {
-        for (row in rows) {
-            for (key in row) {
-                if (key.rect.contains(x, y)) return key
-            }
-        }
+        for (row in rows) for (key in row) if (key.rect.contains(x, y)) return key
         return null
     }
 
-    private fun onKeyPressed(key: Key) {
-        if (prefs.vibrationEnabled) vibrate()
-
+    private fun fireKey(key: Key) {
+        if (prefs.vibrationEnabled) performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         when (key.type) {
             KeyType.CHAR -> {
                 val c = if (isShifted || isCapsLock) key.label[0].uppercaseChar()
                         else key.label[0].lowercaseChar()
                 keyListener?.onChar(c)
-                if (isShifted && !isCapsLock) {
-                    isShifted = false
-                    invalidate()
-                }
+                if (isShifted && !isCapsLock) { isShifted = false; invalidate() }
             }
-            KeyType.SYMBOL    -> keyListener?.onChar(key.label[0])
+            KeyType.SYMBOL    -> {
+                if (key.label == "?123") keyListener?.onSymbolToggle()
+                else keyListener?.onChar(key.label[0])
+            }
             KeyType.BACKSPACE -> keyListener?.onBackspace()
             KeyType.SPACE     -> keyListener?.onSpace()
             KeyType.ENTER     -> keyListener?.onEnter()
@@ -247,8 +431,8 @@ class KeyboardView @JvmOverloads constructor(
             KeyType.SHIFT     -> {
                 when {
                     isCapsLock -> { isCapsLock = false; isShifted = false }
-                    isShifted  -> { isCapsLock = true }
-                    else       -> { isShifted = true }
+                    isShifted  -> isCapsLock = true
+                    else       -> isShifted = true
                 }
                 keyListener?.onShiftToggle()
                 invalidate()
@@ -256,12 +440,5 @@ class KeyboardView @JvmOverloads constructor(
         }
     }
 
-    // ── Vibration ──────────────────────────────────────────────────────────────
-    private fun vibrate() {
-        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-    }
-
-    fun setFontStyle(style: FontStyle) {
-        currentFontStyle = style
-    }
+    fun setFontStyle(style: FontStyle) {}
 }

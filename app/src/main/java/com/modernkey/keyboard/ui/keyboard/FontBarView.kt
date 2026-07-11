@@ -1,77 +1,140 @@
 package com.modernkey.keyboard.ui.keyboard
 
 import android.content.Context
+import android.graphics.*
 import android.util.AttributeSet
-import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.modernkey.keyboard.R
+import com.modernkey.keyboard.ModernKeyApp
 import com.modernkey.keyboard.font.FontStyle
 
 class FontBarView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0
-) : RecyclerView(context, attrs, defStyleAttr) {
+    context: Context, attrs: AttributeSet? = null, def: Int = 0
+) : View(context, attrs, def) {
 
-    interface OnFontSelectedListener {
-        fun onFontSelected(style: FontStyle)
-    }
-
+    interface OnFontSelectedListener { fun onFontSelected(style: FontStyle) }
     var listener: OnFontSelectedListener? = null
-    private val adapter = FontChipAdapter()
 
-    init {
-        layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
-        setAdapter(adapter)
-        setPadding(8, 4, 8, 4)
-        clipToPadding = false
+    private val prefs get() = ModernKeyApp.instance.preferences
+    private val dp    = resources.displayMetrics.density
+    private val styles = FontStyle.entries
+    private var selectedIdx = 0
+
+    // M3 colors
+    private var cBg      = Color.parseColor("#2B2930")
+    private var cChip    = Color.parseColor("#49454F")
+    private var cActive  = Color.parseColor("#6750A4")
+    private var cText    = Color.parseColor("#E6E1E5")
+    private var cActTxt  = Color.parseColor("#FFFFFF")
+    private var cDivider = Color.parseColor("#49454F")
+
+    private val bgPaint   = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val chipPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val txtPaint  = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        typeface  = Typeface.DEFAULT
     }
+    private val divPaint  = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    private val chipRects = mutableListOf<RectF>()
+    private var scrollX   = 0f
+    private var lastTouchX = 0f
+    private var isDragging  = false
+
+    private val chipW  = 68f * dp
+    private val chipH  = 28f * dp
+    private val chipMg = 6f * dp
+    private val cr     = 20f * dp
 
     fun setSelectedFont(style: FontStyle) {
-        adapter.setSelected(style)
+        selectedIdx = styles.indexOf(style).coerceAtLeast(0)
+        invalidate()
     }
 
-    inner class FontChipAdapter : RecyclerView.Adapter<FontChipAdapter.ViewHolder>() {
-
-        private val styles = FontStyle.entries
-        private var selectedIndex = 0
-
-        inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val tvFontName: TextView = view.findViewById(R.id.tv_font_name)
+    fun applyTheme() {
+        if (prefs.isDarkMode) {
+            cBg = Color.parseColor("#2B2930"); cChip = Color.parseColor("#49454F")
+            cActive = Color.parseColor("#6750A4"); cText = Color.parseColor("#938F99")
+            cActTxt = Color.WHITE; cDivider = Color.parseColor("#49454F")
+        } else {
+            cBg = Color.parseColor("#F3EFF4"); cChip = Color.parseColor("#E8DEF8")
+            cActive = Color.parseColor("#6750A4"); cText = Color.parseColor("#49454F")
+            cActTxt = Color.WHITE; cDivider = Color.parseColor("#CAC4D0")
         }
+        invalidate()
+    }
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.item_font_chip, parent, false)
-            return ViewHolder(view)
+    override fun onDraw(canvas: Canvas) {
+        // Background
+        bgPaint.color = cBg
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
+
+        // Bottom divider
+        divPaint.color = cDivider
+        canvas.drawLine(0f, height - 1f, width.toFloat(), height - 1f, divPaint)
+
+        chipRects.clear()
+        val h = height.toFloat()
+        val chipY = (h - chipH) / 2f
+        var x = chipMg - scrollX
+
+        canvas.save()
+        canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
+
+        for ((i, style) in styles.withIndex()) {
+            val r = RectF(x, chipY, x + chipW, chipY + chipH)
+            chipRects.add(r)
+
+            val isSelected = i == selectedIdx
+            chipPaint.color = if (isSelected) cActive else cChip
+            canvas.drawRoundRect(r, cr, cr, chipPaint)
+
+            txtPaint.color    = if (isSelected) cActTxt else cText
+            txtPaint.textSize = 12f * dp
+            val tm = txtPaint.fontMetrics
+            val label = style.preview.take(4)
+            canvas.drawText(label, r.centerX(), r.centerY() - (tm.ascent + tm.descent) / 2f, txtPaint)
+
+            x += chipW + chipMg
         }
+        canvas.restore()
+    }
 
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val style = styles[position]
-            holder.tvFontName.text = style.preview
-            holder.tvFontName.contentDescription = style.displayName
-            holder.tvFontName.isSelected = position == selectedIndex
-
-            holder.itemView.setOnClickListener {
-                val prev = selectedIndex
-                selectedIndex = position
-                notifyItemChanged(prev)
-                notifyItemChanged(position)
-                listener?.onFontSelected(style)
+    override fun onTouchEvent(ev: MotionEvent): Boolean {
+        when (ev.action) {
+            MotionEvent.ACTION_DOWN -> {
+                lastTouchX = ev.x; isDragging = false
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val dx = lastTouchX - ev.x
+                if (Math.abs(dx) > 8f) isDragging = true
+                if (isDragging) {
+                    val maxScroll = (styles.size * (chipW + chipMg)) - width + chipMg
+                    scrollX = (scrollX + dx).coerceIn(0f, maxScroll.coerceAtLeast(0f))
+                    lastTouchX = ev.x
+                    invalidate()
+                }
+            }
+            MotionEvent.ACTION_UP -> {
+                if (!isDragging) {
+                    val touchX = ev.x + scrollX
+                    chipRects.forEachIndexed { i, r ->
+                        val adjustedR = RectF(r.left + scrollX, r.top, r.right + scrollX, r.bottom)
+                        if (adjustedR.contains(ev.x + scrollX, ev.y + 0f)) {
+                            // simpler: find which chip
+                        }
+                    }
+                    // Find tapped chip by raw position
+                    val rawX   = ev.x + scrollX - chipMg
+                    val idx    = (rawX / (chipW + chipMg)).toInt()
+                    if (idx in styles.indices) {
+                        selectedIdx = idx
+                        listener?.onFontSelected(styles[idx])
+                        invalidate()
+                    }
+                }
             }
         }
-
-        override fun getItemCount() = styles.size
-
-        fun setSelected(style: FontStyle) {
-            val prev = selectedIndex
-            selectedIndex = styles.indexOf(style).coerceAtLeast(0)
-            notifyItemChanged(prev)
-            notifyItemChanged(selectedIndex)
-        }
+        return true
     }
 }
