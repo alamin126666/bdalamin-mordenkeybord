@@ -1,0 +1,87 @@
+<resources>
+    <string name="app_name">ModernKey</string>
+    <string name="ime_name">ModernKey Keyboard</string>
+
+    <!-- Settings -->
+    <string name="settings_title">ModernKey Settings</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_key_height">Key Height</string>
+    <string name="settings_font">Font Settings</string>
+    <string name="settings_default_font">Default Font Style</string>
+    <string name="settings_show_font_bar">Show Font Preview Bar</string>
+    <string name="settings_voice">Voice Input</string>
+    <string name="settings_voice_language">Voice Language</string>
+    <string name="settings_auto_punctuation">Auto Punctuation</string>
+    <string name="settings_emoji">Emoji</string>
+    <string name="settings_show_recent">Show Recently Used</string>
+    <string name="settings_clear_recent">Clear Recent Emojis</string>
+    <string name="settings_clipboard">Clipboard</string>
+    <string name="settings_enable_clipboard">Enable Clipboard History</string>
+    <string name="settings_max_clipboard_items">Max Items to Save</string>
+    <string name="settings_clear_clipboard">Clear All Clipboard Items</string>
+    <string name="settings_haptics">Sound &amp; Haptics</string>
+    <string name="settings_key_sound">Key Press Sound</string>
+    <string name="settings_vibration">Vibration on Keypress</string>
+    <string name="settings_about">About</string>
+    <string name="settings_version">App Version</string>
+    <string name="settings_privacy">Privacy Policy</string>
+
+    <!-- Setup -->
+    <string name="setup_title">Setup ModernKey</string>
+    <string name="setup_enable_keyboard">Enable in System Settings</string>
+    <string name="setup_select_default">Set as Default Keyboard</string>
+    <string name="setup_done">All Done! Start Typing</string>
+    <string name="btn_enable">Enable</string>
+    <string name="btn_select">Select</string>
+    <string name="btn_open">Open Any App</string>
+
+    <!-- Voice -->
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_tap_to_speak">Tap to speak</string>
+    <string name="voice_error">Could not recognize. Try again.</string>
+
+    <!-- Emoji -->
+    <string name="emoji_search_hint">Search emojis…</string>
+    <string name="emoji_recent">Recently Used</string>
+    <string name="emoji_no_recent">No recent emojis yet</string>
+
+    <!-- Clipboard -->
+    <string name="clipboard_title">Clipboard</string>
+    <string name="clipboard_empty">Clipboard is empty</string>
+    <string name="clipboard_clear_all">Clear All</string>
+    <string name="clipboard_item_pinned">Pinned</string>
+
+    <!-- Themes -->
+    <string-array name="theme_names">
+        <item>Light Classic</item>
+        <item>Dark Mode</item>
+        <item>Midnight Blue</item>
+        <item>Sunset Pink</item>
+        <item>Forest Green</item>
+        <item>Neon Glow</item>
+        <item>Minimal White</item>
+    </string-array>
+
+    <string-array name="key_height_names">
+        <item>Small</item>
+        <item>Medium</item>
+        <item>Large</item>
+    </string-array>
+
+    <string-array name="voice_language_names">
+        <item>English (US)</item>
+        <item>English (UK)</item>
+        <item>বাংলা</item>
+        <item>Hindi</item>
+        <item>Auto Detect</item>
+    </string-array>
+
+    <string-array name="voice_language_codes">
+        <item>en-US</item>
+        <item>en-GB</item>
+        <item>bn-BD</item>
+        <item>hi-IN</item>
+        <item>auto</item>
+    </string-array>
+</resources>

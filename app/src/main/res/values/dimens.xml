@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Keyboard -->
+    <dimen name="key_height_small">44dp</dimen>
+    <dimen name="key_height_medium">52dp</dimen>
+    <dimen name="key_height_large">60dp</dimen>
+    <dimen name="key_corner_radius">8dp</dimen>
+    <dimen name="key_margin">3dp</dimen>
+    <dimen name="key_text_size">16sp</dimen>
+    <dimen name="key_icon_size">20dp</dimen>
+
+    <!-- Font Bar -->
+    <dimen name="font_bar_height">40dp</dimen>
+    <dimen name="font_chip_height">32dp</dimen>
+    <dimen name="font_chip_min_width">60dp</dimen>
+    <dimen name="font_chip_text_size">13sp</dimen>
+    <dimen name="font_chip_margin">4dp</dimen>
+
+    <!-- Emoji Panel -->
+    <dimen name="emoji_panel_height">240dp</dimen>
+    <dimen name="emoji_tab_height">44dp</dimen>
+    <dimen name="emoji_item_size">42dp</dimen>
+    <dimen name="emoji_text_size">24sp</dimen>
+
+    <!-- Voice Overlay -->
+    <dimen name="voice_mic_size">72dp</dimen>
+    <dimen name="voice_wave_size">120dp</dimen>
+
+    <!-- Spacing -->
+    <dimen name="spacing_4">4dp</dimen>
+    <dimen name="spacing_8">8dp</dimen>
+    <dimen name="spacing_12">12dp</dimen>
+    <dimen name="spacing_16">16dp</dimen>
+    <dimen name="spacing_24">24dp</dimen>
+</resources>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand Colors -->
+    <color name="primary">#6200EE</color>
+    <color name="primary_dark">#3700B3</color>
+    <color name="accent">#03DAC5</color>
+
+    <!-- Light Theme Keyboard -->
+    <color name="kb_bg_light">#F5F5F5</color>
+    <color name="kb_key_light">#FFFFFF</color>
+    <color name="kb_key_action_light">#DEDEDE</color>
+    <color name="kb_key_text_light">#212121</color>
+    <color name="kb_key_text_action_light">#424242</color>
+    <color name="kb_key_pressed_light">#E0E0E0</color>
+    <color name="kb_border_light">#BDBDBD</color>
+
+    <!-- Dark Theme Keyboard -->
+    <color name="kb_bg_dark">#1A1A1A</color>
+    <color name="kb_key_dark">#2C2C2C</color>
+    <color name="kb_key_action_dark">#141414</color>
+    <color name="kb_key_text_dark">#FFFFFF</color>
+    <color name="kb_key_text_action_dark">#BDBDBD</color>
+    <color name="kb_key_pressed_dark">#3C3C3C</color>
+    <color name="kb_border_dark">#424242</color>
+
+    <!-- Midnight Blue -->
+    <color name="kb_bg_midnight">#0D1B2A</color>
+    <color name="kb_key_midnight">#1B3A5C</color>
+    <color name="kb_key_action_midnight">#0A1520</color>
+
+    <!-- Sunset Pink -->
+    <color name="kb_bg_sunset">#2D1B2E</color>
+    <color name="kb_key_sunset">#6B3A5F</color>
+
+    <!-- Forest Green -->
+    <color name="kb_bg_forest">#1A2E1A</color>
+    <color name="kb_key_forest">#2E5C2E</color>
+
+    <!-- Neon Glow -->
+    <color name="kb_bg_neon">#000000</color>
+    <color name="kb_key_neon">#0D0D0D</color>
+    <color name="kb_neon_accent">#00FF41</color>
+
+    <!-- Font Bar -->
+    <color name="font_bar_bg">#EEEEEE</color>
+    <color name="font_bar_bg_dark">#212121</color>
+    <color name="font_chip_active">#6200EE</color>
+    <color name="font_chip_inactive">#E0E0E0</color>
+    <color name="font_chip_text_active">#FFFFFF</color>
+    <color name="font_chip_text_inactive">#424242</color>
+
+    <!-- Emoji Panel -->
+    <color name="emoji_panel_bg">#F5F5F5</color>
+    <color name="emoji_panel_bg_dark">#1A1A1A</color>
+    <color name="emoji_tab_active">#6200EE</color>
+    <color name="emoji_tab_inactive">#9E9E9E</color>
+
+    <!-- Voice -->
+    <color name="voice_listening">#F44336</color>
+    <color name="voice_idle">#757575</color>
+
+    <!-- White and Black -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+</resources>
